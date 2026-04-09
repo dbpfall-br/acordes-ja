@@ -1,5 +1,5 @@
 // Acordes já — Service Worker (Cache-first strategy)
-const CACHE_NAME = 'acordes-ja-v1';
+const CACHE_NAME = 'acordes-ja-v2';
 const ASSETS = [
   './',
   './index.html',
