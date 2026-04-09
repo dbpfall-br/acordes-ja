@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "acordes-pwa",
+      "runtimeExecutable": "/usr/bin/python3",
+      "runtimeArgs": ["-m", "http.server", "8080", "-d", "/Users/dheliopereira/Desktop/chordii-web-pwa"],
+      "port": 8080
+    }
+  ]
+}

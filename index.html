@@ -1,0 +1,1109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Acordes já — Roda de Acordes</title>
+  <meta name="theme-color" content="#2563eb">
+  <meta name="description" content="Acordes já — Roda de acordes interativa para músicos. Encontre acordes em qualquer tonalidade, com notação em romanos, números Nashville e variantes estendidas.">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Acordes já">
+  <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'><rect fill='%232563eb' width='180' height='180'/><text x='50%' y='50%' font-size='60' fill='white' text-anchor='middle' dominant-baseline='middle' font-weight='bold'>♪</text></svg>">
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='50' fill='%232563eb'/><text x='50%' y='50%' font-size='50' fill='white' text-anchor='middle' dominant-baseline='middle' font-weight='bold'>♪</text></svg>">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #f5f4f0;
+      --surface: #ffffff;
+      --border: #dddbd5;
+      --text: #18181b;
+      --muted: #71717a;
+      --accent: #2563eb;
+      --accent-bg: rgba(37,99,235,0.08);
+      --wheel-outer: #e8e6e0;
+      --wheel-mid: #f0ede8;
+      --wheel-in: #fafaf8;
+      --shadow: 0 4px 24px rgba(0,0,0,0.07), 0 1px 4px rgba(0,0,0,0.04);
+      --card-hover: #f5f4f0;
+      --chip-bg: #f0ede8;
+    }
+    [data-theme="dark"] {
+      --bg: #0f0f0e;
+      --surface: #1a1a18;
+      --border: #2c2c29;
+      --text: #ededea;
+      --muted: #71716a;
+      --accent: #3b82f6;
+      --accent-bg: rgba(59,130,246,0.1);
+      --wheel-outer: #222220;
+      --wheel-mid: #1c1c1a;
+      --wheel-in: #161614;
+      --shadow: 0 4px 24px rgba(0,0,0,0.4);
+      --card-hover: #222220;
+      --chip-bg: #222220;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      transition: background 0.2s, color 0.2s;
+    }
+
+    .app {
+      width: 100%;
+      max-width: 1100px;
+      padding: 20px 16px 48px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 28px;
+    }
+
+    /* Tabela de Variantes */
+    .variants-section { width: 100%; }
+
+    .variants-scroll {
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .variants-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12.5px;
+      min-width: 560px;
+    }
+    .variants-table th {
+      text-align: center;
+      padding: 6px 8px;
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      color: var(--muted);
+      border-bottom: 1.5px solid var(--border);
+      white-space: nowrap;
+    }
+    .variants-table th:first-child,
+    .variants-table th:nth-child(2) { text-align: left; }
+
+    .variants-table td {
+      padding: 8px 8px 6px;
+      text-align: center;
+      border-bottom: 1px solid var(--border);
+      vertical-align: top;
+    }
+    .variants-table td:first-child,
+    .variants-table td:nth-child(2) { text-align: left; vertical-align: middle; }
+
+    /* row hover */
+    .var-row-a:hover td { background: var(--accent-bg); }
+
+    /* separator between chord groups */
+    .var-row-sep td {
+      padding: 0;
+      height: 5px;
+      border-bottom: 1.5px solid var(--border);
+      background: none;
+    }
+
+    /* Degree cell */
+    .vt-deg-cell {
+      font-size: 10.5px;
+      font-weight: 600;
+      color: var(--muted);
+      white-space: nowrap;
+    }
+    .vt-deg-cell.tonic { color: var(--accent); }
+
+    /* Chord name cell */
+    .vt-chord-cell {
+      font-weight: 700;
+      font-size: 13px;
+      color: var(--text);
+      white-space: nowrap;
+    }
+    .vt-chord-cell .vt-formula { font-weight: 400; }
+    .vt-chord-cell.tonic { color: var(--accent); }
+
+    /* Formula below each chord chip */
+    .vt-formula {
+      font-size: 9.5px;
+      font-weight: 400;
+      color: var(--muted);
+      letter-spacing: 0.2px;
+      margin-top: 5px;
+      white-space: nowrap;
+    }
+    .vt-notes {
+      font-size: 9.5px;
+      font-weight: 400;
+      color: #f97316;
+      letter-spacing: 0.2px;
+      margin-top: 2px;
+      white-space: nowrap;
+    }
+
+    .vt-chip {
+      display: inline-block;
+      background: var(--chip-bg);
+      border: 1px solid var(--border);
+      border-radius: 5px;
+      padding: 2px 7px;
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--text);
+      white-space: nowrap;
+      cursor: default;
+    }
+    .vt-chip:hover { border-color: var(--accent); color: var(--accent); }
+    .vt-empty { color: var(--border); font-size: 10px; }
+
+    /* Header */
+    header {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .logo {
+      font-size: 18px;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      color: var(--text);
+    }
+    .logo em { color: var(--accent); font-style: normal; }
+    .logo-author {
+      font-size: 12px;
+      font-style: italic;
+      color: #f97316;
+      font-weight: 500;
+      margin-top: 2px;
+      letter-spacing: 0.2px;
+    }
+
+    .header-controls { display: flex; align-items: center; gap: 8px; }
+
+    .seg-control {
+      display: flex;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 2px;
+      gap: 1px;
+    }
+    .seg-btn {
+      border: none;
+      background: transparent;
+      color: var(--muted);
+      font-size: 12.5px;
+      font-weight: 500;
+      padding: 5px 12px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.15s;
+      white-space: nowrap;
+    }
+    .seg-btn.active {
+      background: var(--accent);
+      color: #fff;
+    }
+    .seg-btn:not(.active):hover { color: var(--text); }
+
+    .icon-btn {
+      width: 34px; height: 34px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      cursor: pointer;
+      display: grid; place-items: center;
+      font-size: 15px;
+      transition: all 0.15s;
+      color: var(--text);
+    }
+    .icon-btn:hover { border-color: var(--accent); }
+
+    /* Wheel */
+    .wheel-wrap {
+      position: relative;
+      width: min(460px, 90vw);
+      height: min(460px, 90vw);
+    }
+    #wheel {
+      width: 100%; height: 100%;
+      cursor: pointer;
+      display: block;
+    }
+
+    /* Chord cards */
+    .section-label {
+      font-size: 10.5px;
+      font-weight: 600;
+      letter-spacing: 0.9px;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 10px;
+      text-align: center;
+    }
+
+    .chord-row {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 6px;
+      width: 100%;
+    }
+    .chord-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 10px 4px 9px;
+      text-align: center;
+      transition: border-color 0.15s;
+    }
+    .chord-card:first-child {
+      border-color: var(--accent);
+      background: var(--accent-bg);
+    }
+    .cc-degree {
+      font-size: 10px;
+      color: var(--muted);
+      font-weight: 500;
+      margin-bottom: 5px;
+      min-height: 14px;
+    }
+    .cc-degree sup { font-size: 8px; }
+    .cc-name {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--text);
+      line-height: 1;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .chord-card:first-child .cc-name { color: var(--accent); }
+    .cc-name sup { font-size: 9px; font-weight: 600; }
+
+    /* Key grid */
+    .key-row {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 6px;
+      width: 100%;
+    }
+    .key-btn {
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--text);
+      border-radius: 8px;
+      padding: 9px 4px;
+      font-size: 13.5px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s;
+      min-height: 42px;
+    }
+    .key-btn:not(.active):hover { border-color: var(--accent); color: var(--accent); }
+    .key-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+    footer {
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 4px;
+    }
+
+    /* Quality Toggle (Major / Minor) */
+    .qual-toggle {
+      display: flex;
+      align-items: center;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 2px;
+      gap: 1px;
+    }
+    .qual-btn {
+      border: none;
+      background: transparent;
+      color: var(--muted);
+      font-size: 12.5px;
+      font-weight: 500;
+      padding: 5px 12px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.15s;
+      white-space: nowrap;
+    }
+    .qual-btn.active {
+      background: var(--accent);
+      color: #fff;
+    }
+    .qual-btn:not(.active):hover { color: var(--text); }
+
+    /* Responsive */
+    @media (max-width: 520px) {
+      .chord-row { grid-template-columns: repeat(4, 1fr); }
+      .key-row { grid-template-columns: repeat(4, 1fr); }
+      .seg-btn { font-size: 11.5px; padding: 5px 8px; }
+      .cc-name { font-size: 12px; }
+    }
+  </style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <div>
+      <div class="logo">Acordes<em> já</em></div>
+      <div class="logo-author">by DBP</div>
+    </div>
+    <div class="header-controls">
+      <div class="qual-toggle">
+        <button class="qual-btn active" data-quality="major">Maior</button>
+        <button class="qual-btn" data-quality="minor">Menor</button>
+      </div>
+      <div class="seg-control">
+        <button class="seg-btn active" data-mode="roman">Romano</button>
+        <button class="seg-btn" data-mode="nashville">Nashville</button>
+        <button class="seg-btn" data-mode="extended">Nashville+</button>
+      </div>
+      <button class="icon-btn" id="themeBtn" title="Alternar tema">🌙</button>
+    </div>
+  </header>
+
+  <div class="wheel-wrap">
+    <canvas id="wheel" width="460" height="460"></canvas>
+  </div>
+
+  <div style="width:100%">
+    <div class="section-label">Selecionar Tom</div>
+    <div class="key-row" id="keysGrid"></div>
+  </div>
+
+  <div style="width:100%">
+    <div class="section-label" id="chordsLabel">Acordes em C maior</div>
+    <div class="chord-row" id="chordsGrid"></div>
+  </div>
+
+  <div class="variants-section" id="variantsSection" style="display:none">
+    <div class="section-label">Variantes — <span id="variantsKeyLabel">C maior</span></div>
+    <div class="variants-scroll">
+      <table class="variants-table">
+        <thead>
+          <tr>
+            <th>Grau</th>
+            <th>Acorde</th>
+            <th>7</th>
+            <th>9</th>
+            <th>add9</th>
+            <th>6</th>
+            <th>sus2</th>
+            <th>sus4</th>
+          </tr>
+        </thead>
+        <tbody id="variantsTbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <footer>Todos os acordes, em qualquer tom — na hora</footer>
+</div>
+
+<script>
+// ─── Data ─────────────────────────────────────────────────────────────────────
+const KEYS = ['C','Db','D','Eb','E','F','F#','G','Ab','A','Bb','B'];
+
+const SCALE = {
+  C:  ['C','Dm','Em','F','G','Am','Bdim'],
+  Db: ['Db','Ebm','Fm','Gb','Ab','Bbm','Cdim'],
+  D:  ['D','Em','F#m','G','A','Bm','C#dim'],
+  Eb: ['Eb','Fm','Gm','Ab','Bb','Cm','Ddim'],
+  E:  ['E','F#m','G#m','A','B','C#m','D#dim'],
+  F:  ['F','Gm','Am','Bb','C','Dm','Edim'],
+  'F#': ['F#','G#m','A#m','B','C#','D#m','F dim'],
+  G:  ['G','Am','Bm','C','D','Em','F#dim'],
+  Ab: ['Ab','Bbm','Cm','Db','Eb','Fm','Gdim'],
+  A:  ['A','Bm','C#m','D','E','F#m','G#dim'],
+  Bb: ['Bb','Cm','Dm','Eb','F','Gm','Adim'],
+  B:  ['B','C#m','D#m','E','F#','G#m','A#dim'],
+};
+
+const EXT = {
+  C:  ['Cmaj7','Dm7','Em7','Fmaj7','G7','Am7','Bm7b5'],
+  Db: ['Dbmaj7','Ebm7','Fm7','Gbmaj7','Ab7','Bbm7','Cm7b5'],
+  D:  ['Dmaj7','Em7','F#m7','Gmaj7','A7','Bm7','C#m7b5'],
+  Eb: ['Ebmaj7','Fm7','Gm7','Abmaj7','Bb7','Cm7','Dm7b5'],
+  E:  ['Emaj7','F#m7','G#m7','Amaj7','B7','C#m7','D#m7b5'],
+  F:  ['Fmaj7','Gm7','Am7','Bbmaj7','C7','Dm7','Em7b5'],
+  'F#': ['F#maj7','G#m7','A#m7','Bmaj7','C#7','D#m7','Fm7b5'],
+  G:  ['Gmaj7','Am7','Bm7','Cmaj7','D7','Em7','F#m7b5'],
+  Ab: ['Abmaj7','Bbm7','Cm7','Dbmaj7','Eb7','Fm7','Gm7b5'],
+  A:  ['Amaj7','Bm7','C#m7','Dmaj7','E7','F#m7','G#m7b5'],
+  Bb: ['Bbmaj7','Cm7','Dm7','Ebmaj7','F7','Gm7','Am7b5'],
+  B:  ['Bmaj7','C#m7','D#m7','Emaj7','F#7','G#m7','A#m7b5'],
+};
+
+// ── Major scale data ──
+const SEMI_MAJ  = [0, 2, 4, 5, 7, 9, 11];
+const ROMAN_MAJ = ['I','ii','iii','IV','V','vi','vii°'];
+const ROMAN_MAJ_HTML = ['I','ii','iii','IV','V','vi','vii<sup>°</sup>'];
+const NASH_MAJ_HTML  = ['1','2<sup>–</sup>','3<sup>–</sup>','4','5','6<sup>–</sup>','7<sup>°</sup>'];
+
+// ── Minor scale (natural minor) data ──
+const SEMI_MIN  = [0, 2, 3, 5, 7, 8, 10];
+const ROMAN_MIN = ['i','ii°','III','iv','v','VI','VII'];
+const ROMAN_MIN_HTML = ['i','ii<sup>°</sup>','III','iv','v','VI','VII'];
+const NASH_MIN_HTML  = ['1<sup>–</sup>','2<sup>°</sup>','3','4<sup>–</sup>','5<sup>–</sup>','6','7'];
+
+// Real chord names per key — MINOR [i, ii°, III, iv, v, VI, VII]
+const SCALE_MIN = {
+  C:  ['Cm','Ddim','Eb','Fm','Gm','Ab','Bb'],
+  Db: ['C#m','D#dim','E','F#m','G#m','A','B'],
+  D:  ['Dm','Edim','F','Gm','Am','Bb','C'],
+  Eb: ['Ebm','Fdim','Gb','Abm','Bbm','Cb','Db'],
+  E:  ['Em','F#dim','G','Am','Bm','C','D'],
+  F:  ['Fm','Gdim','Ab','Bbm','Cm','Db','Eb'],
+  'F#': ['F#m','G#dim','A','Bm','C#m','D','E'],
+  G:  ['Gm','Adim','Bb','Cm','Dm','Eb','F'],
+  Ab: ['G#m','A#dim','B','C#m','D#m','E','F#'],
+  A:  ['Am','Bdim','C','Dm','Em','F','G'],
+  Bb: ['Bbm','Cdim','Db','Ebm','Fm','Gb','Ab'],
+  B:  ['Bm','C#dim','D','Em','F#m','G','A'],
+};
+
+// Minor 7th extensions [im7, iiø7, IIImaj7, ivm7, vm7, VImaj7, VII7]
+const EXT_MIN = {
+  C:  ['Cm7','Dm7b5','Ebmaj7','Fm7','Gm7','Abmaj7','Bb7'],
+  Db: ['C#m7','D#m7b5','Emaj7','F#m7','G#m7','Amaj7','B7'],
+  D:  ['Dm7','Em7b5','Fmaj7','Gm7','Am7','Bbmaj7','C7'],
+  Eb: ['Ebm7','Fm7b5','Gbmaj7','Abm7','Bbm7','Cbmaj7','Db7'],
+  E:  ['Em7','F#m7b5','Gmaj7','Am7','Bm7','Cmaj7','D7'],
+  F:  ['Fm7','Gm7b5','Abmaj7','Bbm7','Cm7','Dbmaj7','Eb7'],
+  'F#': ['F#m7','G#m7b5','Amaj7','Bm7','C#m7','Dmaj7','E7'],
+  G:  ['Gm7','Am7b5','Bbmaj7','Cm7','Dm7','Ebmaj7','F7'],
+  Ab: ['G#m7','A#m7b5','Bmaj7','C#m7','D#m7','Emaj7','F#7'],
+  A:  ['Am7','Bm7b5','Cmaj7','Dm7','Em7','Fmaj7','G7'],
+  Bb: ['Bbm7','Cm7b5','Dbmaj7','Ebm7','Fm7','Gbmaj7','Ab7'],
+  B:  ['Bm7','C#m7b5','Dmaj7','Em7','F#m7','Gmaj7','A7'],
+};
+
+// ── Chord Variants Generator ──────────────────────────────────────────────────
+// Detecta o tipo do acorde e gera variantes (7, 9, add9, sus2, sus4)
+function getChordVariants(chord) {
+  // Isolar a nota base e o sufixo
+  // Padrão: nota base = [A-G][#b]? sufixo = (m|dim)?
+  const match = chord.match(/^([A-G][#b♯♭]?)(m|dim)?$/);
+  if (!match) return { v7: '—', v9: '—', vadd9: '—', vsus2: '—', vsus4: '—' };
+
+  const base   = match[1];           // ex: 'G', 'F#', 'Bb'
+  const suffix = match[2] || '';     // '', 'm', 'dim'
+
+  if (suffix === 'dim') {
+    // Diminuto: variantes são m7b5 e dim7
+    return {
+      v7:    `${base}m7♭5`,
+      v9:    '—',
+      vadd9: '—',
+      vsus2: '—',
+      vsus4: `${base}dim7`,
+    };
+  }
+
+  if (suffix === 'm') {
+    // Acorde menor
+    return {
+      v7:    `${base}m7`,
+      v9:    `${base}m9`,
+      vadd9: `${base}m(add9)`,
+      vsus2: `${base}sus2`,
+      vsus4: `${base}sus4`,
+    };
+  }
+
+  // Acorde maior — diferenciar V (dom7) dos demais (maj7)
+  // Grau V sempre recebe dom7; os outros, maj7
+  // Passamos o grau como segundo argumento para resolver isso
+  return {
+    v7:    null,          // preenchido pelo caller com maj7 ou 7
+    v9:    null,          // idem
+    vadd9: `${base}(add9)`,
+    vsus2: `${base}sus2`,
+    vsus4: `${base}sus4`,
+  };
+}
+
+function buildVariantRow(chord, degIdx, degLabel) {
+  const match = chord.match(/^([A-G][#b♯♭]?)(m|dim)?$/);
+  const base   = match ? match[1] : chord;
+  const suffix = match ? (match[2] || '') : '';
+
+  const v = getChordVariants(chord);
+
+  // Para acordes maiores: V e VII (grau 4 e 6 em major, grau 6 em minor) usam dom7
+  // Para simplicidade, V (índice 4) usa 7 dominante; o resto usa maj7
+  const isDom = (degIdx === 4); // grau V
+  if (suffix === '') {
+    v.v7 = isDom ? `${base}7` : `${base}maj7`;
+    v.v9 = isDom ? `${base}9` : `${base}maj9`;
+  }
+
+  return v;
+}
+
+// Helpers — pick correct data based on quality
+function getSemi()      { return S.quality === 'minor' ? SEMI_MIN  : SEMI_MAJ; }
+function getRomanHTML() { return S.quality === 'minor' ? ROMAN_MIN_HTML : ROMAN_MAJ_HTML; }
+function getNashHTML()  { return S.quality === 'minor' ? NASH_MIN_HTML  : NASH_MAJ_HTML; }
+function getRomanPlain(){ return S.quality === 'minor' ? ROMAN_MIN : ROMAN_MAJ; }
+function getScaleData() { return S.quality === 'minor' ? SCALE_MIN : SCALE; }
+function getExtData()   { return S.quality === 'minor' ? EXT_MIN   : EXT; }
+function qualLabel()    { return S.quality === 'minor' ? 'menor'   : 'maior'; }
+
+// ─── State ────────────────────────────────────────────────────────────────────
+const S = {
+  key:     localStorage.getItem('cii_key')     || 'C',
+  mode:    localStorage.getItem('cii_mode')    || 'roman',
+  quality: localStorage.getItem('cii_quality') || 'major',
+  theme:   localStorage.getItem('cii_theme')   || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'),
+  rot:     0,  // current inner rotation (radians)
+};
+
+// ─── Theme ────────────────────────────────────────────────────────────────────
+function setTheme(t) {
+  S.theme = t;
+  document.documentElement.setAttribute('data-theme', t === 'dark' ? 'dark' : '');
+  document.getElementById('themeBtn').textContent = t === 'dark' ? '☀️' : '🌙';
+  localStorage.setItem('cii_theme', t);
+  draw();
+}
+document.getElementById('themeBtn').addEventListener('click', () => {
+  setTheme(S.theme === 'dark' ? 'light' : 'dark');
+});
+
+// ─── Quality (Major / Minor) ──────────────────────────────────────────────────
+document.querySelectorAll('.qual-btn').forEach(b => {
+  b.addEventListener('click', () => {
+    document.querySelectorAll('.qual-btn').forEach(x => x.classList.remove('active'));
+    b.classList.add('active');
+    S.quality = b.dataset.quality;
+    localStorage.setItem('cii_quality', S.quality);
+    document.getElementById('chordsLabel').textContent = `Acordes em ${S.key} ${qualLabel()}`;
+    draw();
+    renderCards();
+    renderVariants();
+  });
+});
+
+// ─── Mode ─────────────────────────────────────────────────────────────────────
+document.querySelectorAll('.seg-btn').forEach(b => {
+  b.addEventListener('click', () => {
+    document.querySelectorAll('.seg-btn').forEach(x => x.classList.remove('active'));
+    b.classList.add('active');
+    S.mode = b.dataset.mode;
+    localStorage.setItem('cii_mode', S.mode);
+    draw();
+    renderCards();
+    renderVariants();
+  });
+});
+
+// ─── Canvas ───────────────────────────────────────────────────────────────────
+const CV = document.getElementById('wheel');
+const CTX = CV.getContext('2d');
+
+function cssVar(v) {
+  return getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+}
+
+function draw(rot) {
+  if (rot === undefined) rot = S.rot;
+
+  const W = CV.width, H = CV.height;
+  const cx = W / 2, cy = H / 2;
+  const R  = Math.min(W, H) / 2 - 8;
+
+  // Radii
+  const rO  = R;          // outer edge
+  const rM  = R - 56;     // outer/mid boundary
+  const rI  = R - 106;    // mid/inner boundary
+  const rC  = R - 150;    // center circle
+
+  const isDark = S.theme === 'dark';
+  const C_SURFACE = isDark ? '#1a1a18' : '#ffffff';
+  const C_OUTER   = isDark ? '#222220' : '#e8e6e0';
+  const C_MID     = isDark ? '#1c1c1a' : '#f0ede8';
+  const C_INNER   = isDark ? '#161614' : '#fafaf8';
+  const C_BORDER  = isDark ? '#2c2c29' : '#dddbd5';
+  const C_TEXT    = isDark ? '#ededea' : '#18181b';
+  const C_MUTED   = isDark ? '#606058' : '#a1a19a';
+  const C_ACCENT  = isDark ? '#3b82f6' : '#2563eb';
+  const C_ASOFT   = isDark ? 'rgba(59,130,246,0.14)' : 'rgba(37,99,235,0.09)';
+
+  CTX.clearRect(0, 0, W, H);
+
+  // ─────────────────────────────────────────────────────────────
+  // The ENTIRE disk rotates together (outer + inner rings).
+  // rot = -(keyIndex/12) * 2π  →  selected key rises to top.
+  // All text is drawn UPRIGHT (no ctx.rotate for labels).
+  // ─────────────────────────────────────────────────────────────
+
+  // ── Outer ring fill ──
+  CTX.beginPath();
+  CTX.arc(cx, cy, rO, 0, Math.PI * 2);
+  CTX.fillStyle = C_OUTER;
+  CTX.fill();
+
+  // ── Highlight selected key slice (always at top = -π/2) ──
+  const sliceAngle = (Math.PI * 2) / 12;
+  const sliceStart = -Math.PI / 2 - sliceAngle / 2;
+  const sliceEnd   = sliceStart + sliceAngle;
+
+  CTX.beginPath();
+  CTX.moveTo(cx + rM * Math.cos(sliceStart), cy + rM * Math.sin(sliceStart));
+  CTX.arc(cx, cy, rO, sliceStart, sliceEnd);
+  CTX.arc(cx, cy, rM, sliceEnd, sliceStart, true);
+  CTX.closePath();
+  CTX.fillStyle = C_ASOFT;
+  CTX.fill();
+  CTX.strokeStyle = C_ACCENT;
+  CTX.lineWidth = 2;
+  CTX.stroke();
+
+  // ── Outer ring dividers (12 sections, rotate with disk) ──
+  CTX.save();
+  CTX.strokeStyle = C_BORDER;
+  CTX.lineWidth = 1;
+  for (let i = 0; i < 12; i++) {
+    const a = (i / 12) * Math.PI * 2 - Math.PI / 2 + rot;
+    CTX.beginPath();
+    CTX.moveTo(cx + rM * Math.cos(a), cy + rM * Math.sin(a));
+    CTX.lineTo(cx + rO * Math.cos(a), cy + rO * Math.sin(a));
+    CTX.stroke();
+  }
+  CTX.restore();
+
+  // ── Key labels (outer ring, rotate with disk, text upright) ──
+  const rKeyLabel = (rO + rM) / 2;
+  KEYS.forEach((k, i) => {
+    const a = (i / 12) * Math.PI * 2 - Math.PI / 2 + rot;
+    const x = cx + rKeyLabel * Math.cos(a);
+    const y = cy + rKeyLabel * Math.sin(a);
+    const isSelected = k === S.key;
+    CTX.font = isSelected
+      ? `bold 15px -apple-system, sans-serif`
+      : `600 13px -apple-system, sans-serif`;
+    CTX.fillStyle = isSelected ? C_ACCENT : C_TEXT;
+    CTX.textAlign = 'center';
+    CTX.textBaseline = 'middle';
+    CTX.fillText(k, x, y);
+  });
+
+  // ── Mid ring fill ──
+  CTX.beginPath();
+  CTX.arc(cx, cy, rM, 0, Math.PI * 2);
+  CTX.fillStyle = C_MID;
+  CTX.fill();
+
+  // ── Mid ring dividers (7 scale degrees, same rotation) ──
+  const SEMI = getSemi();
+  CTX.save();
+  CTX.strokeStyle = C_BORDER;
+  CTX.lineWidth = 1;
+  SEMI.forEach(semi => {
+    const a = (semi / 12) * Math.PI * 2 - Math.PI / 2 + rot;
+    CTX.beginPath();
+    CTX.moveTo(cx + rI * Math.cos(a), cy + rI * Math.sin(a));
+    CTX.lineTo(cx + rM * Math.cos(a), cy + rM * Math.sin(a));
+    CTX.stroke();
+  });
+  CTX.restore();
+
+  // ── Mid ring labels (degrees/chords, upright text) ──
+  const rMidLabel = (rM + rI) / 2;
+  const nashPlain = S.quality === 'minor'
+    ? ['1–','2°','3','4–','5–','6','7']
+    : ['1','2–','3–','4','5','6–','7°'];
+  SEMI.forEach((semi, deg) => {
+    const a = (semi / 12) * Math.PI * 2 - Math.PI / 2 + rot;
+    const x = cx + rMidLabel * Math.cos(a);
+    const y = cy + rMidLabel * Math.sin(a);
+
+    let label;
+    if (S.mode === 'roman')     label = getRomanPlain()[deg];
+    if (S.mode === 'nashville') label = nashPlain[deg];
+    if (S.mode === 'extended')  label = getExtData()[S.key][deg];
+
+    const isI = deg === 0;
+    CTX.font = isI
+      ? `bold 14px -apple-system, sans-serif`
+      : S.mode === 'extended'
+        ? `500 10px -apple-system, sans-serif`
+        : `600 12px -apple-system, sans-serif`;
+    CTX.fillStyle = isI ? C_ACCENT : C_TEXT;
+    CTX.textAlign = 'center';
+    CTX.textBaseline = 'middle';
+    CTX.fillText(label, x, y);
+  });
+
+  // ── Inner ring fill ──
+  CTX.beginPath();
+  CTX.arc(cx, cy, rI, 0, Math.PI * 2);
+  CTX.fillStyle = C_INNER;
+  CTX.fill();
+
+  // ── Inner ring labels (real chord names, upright) ──
+  const rInnerLabel = (rI + rC) / 2 + 4;
+  SEMI.forEach((semi, deg) => {
+    const a = (semi / 12) * Math.PI * 2 - Math.PI / 2 + rot;
+    const x = cx + rInnerLabel * Math.cos(a);
+    const y = cy + rInnerLabel * Math.sin(a);
+    const chord = getScaleData()[S.key][deg];
+    const isI = deg === 0;
+    CTX.font = isI
+      ? `bold 13px -apple-system, sans-serif`
+      : `500 11px -apple-system, sans-serif`;
+    CTX.fillStyle = isI ? C_ACCENT : C_MUTED;
+    CTX.textAlign = 'center';
+    CTX.textBaseline = 'middle';
+    CTX.fillText(chord, x, y);
+  });
+
+  // ── Ring borders ──
+  [rO, rM, rI, rC].forEach((r, ri) => {
+    CTX.beginPath();
+    CTX.arc(cx, cy, r, 0, Math.PI * 2);
+    CTX.strokeStyle = C_BORDER;
+    CTX.lineWidth = ri === 0 ? 0 : 1.5;
+    CTX.stroke();
+  });
+
+  // ── Center circle ──
+  CTX.beginPath();
+  CTX.arc(cx, cy, rC, 0, Math.PI * 2);
+  CTX.fillStyle = C_SURFACE;
+  CTX.fill();
+  CTX.strokeStyle = C_BORDER;
+  CTX.lineWidth = 1.5;
+  CTX.stroke();
+
+  // Center key name
+  CTX.font = `bold 32px -apple-system, sans-serif`;
+  CTX.fillStyle = C_ACCENT;
+  CTX.textAlign = 'center';
+  CTX.textBaseline = 'middle';
+  CTX.fillText(S.key, cx, cy - 8);
+
+  CTX.font = `500 11px -apple-system, sans-serif`;
+  CTX.fillStyle = C_MUTED;
+  CTX.fillText(qualLabel(), cx, cy + 14);
+
+  // ── Top indicator (fixed, points to selected key at top) ──
+  const tipX = cx, tipY = 5;
+  CTX.beginPath();
+  CTX.moveTo(tipX - 7, tipY);
+  CTX.lineTo(tipX + 7, tipY);
+  CTX.lineTo(tipX, tipY + 11);
+  CTX.closePath();
+  CTX.fillStyle = C_ACCENT;
+  CTX.fill();
+}
+
+// ─── Animation ────────────────────────────────────────────────────────────────
+let animId = null;
+
+function animateTo(targetRot) {
+  if (animId) cancelAnimationFrame(animId);
+  const from = S.rot;
+  let diff = targetRot - from;
+  // Shortest path
+  while (diff >  Math.PI) diff -= Math.PI * 2;
+  while (diff < -Math.PI) diff += Math.PI * 2;
+  const to = from + diff;
+  const t0 = performance.now();
+  const dur = 480;
+
+  function ease(t) { return t < 0.5 ? 2*t*t : -1+(4-2*t)*t; }
+
+  function frame(now) {
+    const p = Math.min((now - t0) / dur, 1);
+    S.rot = from + diff * ease(p);
+    draw(S.rot);
+    if (p < 1) animId = requestAnimationFrame(frame);
+    else { S.rot = to; draw(to); }
+  }
+  animId = requestAnimationFrame(frame);
+}
+
+function targetRotForKey(key) {
+  const idx = KEYS.indexOf(key);
+  return -(idx / 12) * Math.PI * 2;
+}
+
+// ─── Select Key ───────────────────────────────────────────────────────────────
+function selectKey(k) {
+  if (k === S.key) return;
+  S.key = k;
+  localStorage.setItem('cii_key', k);
+
+  document.querySelectorAll('.key-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.key === k);
+  });
+  document.getElementById('chordsLabel').textContent = `Acordes em ${k} ${qualLabel()}`;
+
+  animateTo(targetRotForKey(k));
+  renderCards();
+  renderVariants();
+}
+
+// ─── Canvas click ─────────────────────────────────────────────────────────────
+CV.addEventListener('click', e => {
+  const rect = CV.getBoundingClientRect();
+  const sx = CV.width  / rect.width;
+  const sy = CV.height / rect.height;
+  const mx = (e.clientX - rect.left) * sx;
+  const my = (e.clientY - rect.top)  * sy;
+  const cx = CV.width / 2, cy = CV.height / 2;
+  const R  = Math.min(CV.width, CV.height) / 2 - 8;
+  const rM = R - 56;
+
+  const dx = mx - cx, dy = my - cy;
+  const d  = Math.hypot(dx, dy);
+
+  if (d >= rM && d <= R) {
+    // Ângulo do clique em relação ao topo (12h)
+    let a = Math.atan2(dy, dx) + Math.PI / 2;
+    // Descontar a rotação atual do disco para mapear para o índice correto
+    a = a - S.rot;
+    // Normalizar para [0, 2π)
+    a = ((a % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2);
+    const idx = Math.round(a / (Math.PI * 2 / 12)) % 12;
+    selectKey(KEYS[idx]);
+  }
+});
+
+// ─── Interval-to-Note mapping ────────────────────────────────────────────────
+const INTERVAL_SEMITONES = {
+  '1': 0, '♭2': 1, '2': 2, '♭3': 3, '3': 4, '4': 5,
+  '♭5': 6, '5': 7, '#5': 8, '♭6': 8, '6': 9,
+  '♭7': 10, '7': 11, '♭♭7': 9, '9': 2
+};
+
+const ENHARMONIC = {
+  'C#': 'Db', 'D#': 'Eb', 'E#': 'F', 'Fb': 'E',
+  'G#': 'Ab', 'A#': 'Bb', 'B#': 'C', 'Cb': 'B',
+  'Gb': 'F#'
+};
+
+function intervalToNotes(root, formula) {
+  if (!formula) return '';
+  const normalRoot = ENHARMONIC[root] || root;
+  const rootIdx = KEYS.indexOf(normalRoot);
+  if (rootIdx < 0) return '';
+  const intervals = formula.split(/\s+/);
+  return intervals.map(iv => {
+    const semi = INTERVAL_SEMITONES[iv];
+    if (semi === undefined) return iv;
+    return KEYS[(rootIdx + semi) % 12];
+  }).join(' ');
+}
+
+// ─── Variants Table (below chord cards) ──────────────────────────────────────
+function renderVariants() {
+  const section = document.getElementById('variantsSection');
+  const tbody   = document.getElementById('variantsTbody');
+  const keyLbl  = document.getElementById('variantsKeyLabel');
+
+  if (S.mode !== 'extended') {
+    section.style.display = 'none';
+    return;
+  }
+
+  section.style.display = '';
+  keyLbl.textContent = `${S.key} ${qualLabel()}`;
+
+  const chords    = getScaleData()[S.key];
+  const degLabels = getRomanHTML();
+
+  tbody.innerHTML = '';
+
+  const chip = val => (val && val !== '—')
+    ? `<span class="vt-chip">${val}</span>`
+    : `<span class="vt-empty">—</span>`;
+
+  chords.forEach((chord, i) => {
+    const match  = chord.match(/^([A-G][#b]?)\s*(m|dim)?$/);
+    const base   = match ? match[1] : chord;
+    const suffix = match ? (match[2] || '') : '';
+    const isTonic = (i === 0);
+    const isV     = (i === 4);  // V degree → dominant 7
+
+    let v7, v9, vadd9, v6, vsus2, vsus4;
+
+    if (suffix === 'dim') {
+      // Diminished: ø7 and dim7 only
+      v7    = `${base}m7♭5`;
+      v9    = `${base}dim7`;
+      vadd9 = '—'; v6 = '—'; vsus2 = '—'; vsus4 = '—';
+    } else if (suffix === 'm') {
+      v7    = `${base}m7`;
+      v9    = `${base}m9`;
+      vadd9 = `${base}m(add9)`;
+      v6    = `${base}m6`;
+      vsus2 = `${base}sus2`;
+      vsus4 = `${base}sus4`;
+    } else {
+      // Major chord
+      v7    = isV ? `${base}7`    : `${base}maj7`;
+      v9    = isV ? `${base}9`    : `${base}maj9`;
+      vadd9 = `${base}(add9)`;
+      v6    = `${base}6`;
+      vsus2 = `${base}sus2`;
+      vsus4 = `${base}sus4`;
+    }
+
+    const degText  = degLabels[i].replace(/<[^>]+>/g, '');
+    const tonicDeg = isTonic ? ' tonic' : '';
+
+    // Base chord formula
+    const baseFormula = suffix === 'dim' ? '1 ♭3 ♭5'
+                      : suffix === 'm'   ? '1 ♭3 5'
+                      :                    '1 3 5';
+
+    // Variant formulas
+    let f7, f9, fadd9, f6, fsus2, fsus4;
+    if (suffix === 'dim') {
+      f7 = '1 ♭3 ♭5 ♭7';  f9 = '1 ♭3 ♭5 ♭♭7';
+      fadd9 = null; f6 = null; fsus2 = null; fsus4 = null;
+    } else if (suffix === 'm') {
+      f7 = '1 ♭3 5 ♭7';   f9 = '1 ♭3 5 ♭7 9';
+      fadd9 = '1 ♭3 5 9';  f6 = '1 ♭3 5 6';
+      fsus2 = '1 2 5';     fsus4 = '1 4 5';
+    } else if (isV) {
+      f7 = '1 3 5 ♭7';    f9 = '1 3 5 ♭7 9';
+      fadd9 = '1 3 5 9';  f6 = '1 3 5 6';
+      fsus2 = '1 2 5';    fsus4 = '1 4 5';
+    } else {
+      f7 = '1 3 5 7';     f9 = '1 3 5 7 9';
+      fadd9 = '1 3 5 9';  f6 = '1 3 5 6';
+      fsus2 = '1 2 5';    fsus4 = '1 4 5';
+    }
+
+    // Chip + formula + notes stacked inside the cell
+    const chipF = (val, formula) => {
+      if (!val || val === '—') return `<span class="vt-empty">—</span>`;
+      const notes = intervalToNotes(base, formula);
+      return `<span class="vt-chip">${val}</span><div class="vt-formula">${formula}</div><div class="vt-notes">${notes}</div>`;
+    };
+
+    // Base chord notes
+    const baseNotes = intervalToNotes(base, baseFormula);
+
+    // Single row per chord
+    const trA = document.createElement('tr');
+    trA.className = 'var-row-a';
+    trA.innerHTML =
+      `<td class="vt-deg-cell${tonicDeg}">${degText}</td>` +
+      `<td class="vt-chord-cell${tonicDeg}"><div>${chord}</div><div class="vt-formula">${baseFormula}</div><div class="vt-notes">${baseNotes}</div></td>` +
+      `<td>${chipF(v7, f7)}</td>` +
+      `<td>${chipF(v9, f9)}</td>` +
+      `<td>${chipF(vadd9, fadd9)}</td>` +
+      `<td>${chipF(v6, f6)}</td>` +
+      `<td>${chipF(vsus2, fsus2)}</td>` +
+      `<td>${chipF(vsus4, fsus4)}</td>`;
+
+    // Separator row
+    const trSep = document.createElement('tr');
+    trSep.className = 'var-row-sep';
+    trSep.innerHTML = `<td colspan="8"></td>`;
+
+    tbody.appendChild(trA);
+    if (i < chords.length - 1) tbody.appendChild(trSep);
+  });
+}
+
+// ─── Chord Cards ─────────────────────────────────────────────────────────────
+function renderCards() {
+  const grid = document.getElementById('chordsGrid');
+  grid.innerHTML = '';
+  const chords = getScaleData()[S.key];
+  const ext    = getExtData()[S.key];
+
+  chords.forEach((chord, i) => {
+    const card = document.createElement('div');
+    card.className = 'chord-card';
+
+    const deg = document.createElement('div');
+    deg.className = 'cc-degree';
+    if (S.mode === 'roman')     deg.innerHTML = getRomanHTML()[i];
+    if (S.mode === 'nashville') deg.innerHTML = getNashHTML()[i];
+    if (S.mode === 'extended')  deg.innerHTML = getRomanHTML()[i];
+
+    const name = document.createElement('div');
+    name.className = 'cc-name';
+    name.textContent = chord;
+
+    card.appendChild(deg);
+    card.appendChild(name);
+    grid.appendChild(card);
+  });
+}
+
+// ─── Key Buttons ──────────────────────────────────────────────────────────────
+function buildKeys() {
+  const grid = document.getElementById('keysGrid');
+  grid.innerHTML = '';
+  KEYS.forEach(k => {
+    const b = document.createElement('button');
+    b.className = 'key-btn' + (k === S.key ? ' active' : '');
+    b.textContent = k;
+    b.dataset.key = k;
+    b.addEventListener('click', () => selectKey(k));
+    grid.appendChild(b);
+  });
+}
+
+// ─── Init ─────────────────────────────────────────────────────────────────────
+function init() {
+  setTheme(S.theme);
+
+  // Restore mode tab
+  document.querySelectorAll('.seg-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.mode === S.mode);
+  });
+
+  // Restore quality tab
+  document.querySelectorAll('.qual-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.quality === S.quality);
+  });
+
+  S.rot = targetRotForKey(S.key);
+  draw(S.rot);
+  renderCards();
+  renderVariants();
+  buildKeys();
+  document.getElementById('chordsLabel').textContent = `Acordes em ${S.key} ${qualLabel()}`;
+}
+
+window.addEventListener('resize', () => draw(S.rot));
+init();
+</script>
+
+<script>
+  // PWA: Service Worker Registration
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('service-worker.js')
+        .then(reg => console.log('SW registrado:', reg.scope))
+        .catch(err => console.log('SW falhou:', err));
+    });
+  }
+</script>
+</body>
+</html>
